@@ -2,8 +2,297 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title></title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Checkout</title>
+  	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css">
+  	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+  	<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js"></script>
+  	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js"></script>
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+	<link rel="stylesheet" type="text/css" href="/css/style.css">
 </head>
 <body>
+	<div class="container">	
+		<div class="row">
+			<div class="col-sm-4 ">				
+				<product v-if="stats" :produto="products" :checkout="checkouts" :visible="visible" ></product>	
+			</div>			
+		</div>	
+	</div>
+
+<!-- Modal -->
+  <div class="modal fade" id="modalSuccess" role="dialog">
+    <div class="modal-dialog modal-dialog-centered modal-sm ">
+      <div class="modal-content">        
+        <div class="modal-body text-center">
+        <i class="fa fa-shopping-cart fa-2x text-success"></i>
+          <h4>compra confirmada</h4>
+          <p class="text-modal">enviaremos atualizações sobre o pedido para o seu e-mail</p>
+        </div>        
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="modalError" role="dialog">
+    <div class="modal-dialog modal-dialog-centered modal-sm ">
+      <div class="modal-content">
+        
+        <div class="modal-body text-center" >
+          <i class="fa fa-shopping-cart fa-2x text-warning"></i>
+          <h4>compra cancelada</h4>
+          <p class="text-modal">o pedido não foi enviado e você não será cobrado</p>
+        </div>        
+      </div>
+    </div>
+  </div>
+
+
+ <script src="https://cdn.jsdelivr.net/npm/vue@2.5.17/dist/vue.js"></script>
+ <script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.10/lodash.min.js"></script>
+ <script src="//cdnjs.cloudflare.com/ajax/libs/numeral.js/2.0.6/numeral.min.js"></script>
+
+<template id="template-product">
+
+<div class="panel ">
+
+	<div class="panel-heading text-center">
+		<img src="/img/logo.png">
+	</div>
+	  <div class="panel-body">
+	  				  	
+	  	<div class="text-center ">
+
+	  		<hr class="hr">
+
+	  		<img class="product-img" src="https://res-5.cloudinary.com/enjoei/image/upload/c_fill,fl_lossy.progressive,h_398,q_70,w_375/qzancxcixtocajlrgztv.jpg">
+
+	  	</div>
+
+	  	<div>	  		
+	  		<h4 class="weight">cupons</h4>	
+			<table class="table">
+				<tr>
+					<td colspan="2">
+						<div class="radio">
+						  <label class="content">						  	
+						  	<input type="radio" name="optradio" @change="radioChange" value="0" checked>
+						  	não usar cupom
+						  	<span class="checkmark"></span>
+						  </label>
+						</div>
+					</td>
+					
+				</tr>
+				<tr>
+					<td>
+						<div class="radio">
+						  <label class="content">
+						  	<input type="radio" name="optradio" @change="radioChange" value="1">
+						  	black friday
+						  	<span class="checkmark"></span>
+						  </label>
+						</div>
+					</td>
+					<td class="text-danger td-padding">
+						- R$ {{ checkout.availableCoupons[0].discount | Real }}
+					</td>
+				</tr>
+			</table>
+			
+	  	</div>
+
+	  	<div>
+	  		<h4 class="weight">resumo</h4>
+	  		<table class="table">
+	  			<tr>
+	  				<td>valor original</td>
+	  				<td>R$ {{ produto.price | Real}} </td>
+	  			</tr>
+	  			<tr>
+	  				<td>cupom</td>
+	  				<td class="text-danger" v-show="visible">- R$ {{ checkout.availableCoupons[0].discount | Real }}</td>
+	  			</tr>
+	  			<tr>
+	  				<td>frete</td>
+	  				<td>R$ {{ checkout.shippingPrice | Real }} </td>
+	  			</tr>
+	  			<tr>
+	  				<td>total</td>
+	  				<td><b>R$ {{ checkout.totalPrice | Real}}</b></td>
+	  			</tr>
+	  		</table>
+	  	</div>
+	  </div>
+	  <div class="panel-footer">
+	  	<button class="btn btn-default text-danger" data-toggle="modal" data-target="#modalError">cancelar</button>
+	  	<button class="btn btn-danger" @click="salvarProduto">confirmar</button>
+	  </div>
+
+</div>
+		
+</template>
+
+<script type="text/javascript">
+
+	// load a locale
+	numeral.register('locale', 'pt-br', {
+	    delimiters: {
+	        thousands: '.',
+	        decimal: ','
+	    },
+	    abbreviations: {
+	        thousand: 'k',
+	        million: 'm',
+	        billion: 'b',
+	        trillion: 't'
+	    },
+	    ordinal : function (number) {
+	        return number === 1 ? 'er' : 'ème';
+	    },
+	    currency: {
+	        symbol: '€'
+	    }
+	});
+
+	// switch between locales
+	numeral.locale('pt-br');
+	
+	var bus = new Vue();
+
+	Vue.filter('Real', function(value) {
+		return numeral(value).format('0,0.00');
+		
+	});
+
+	Vue.component('product', {
+		template: '#template-product',
+		props: ['produto', 'checkout', 'visible'],
+		
+		computed: {
+			isBlackFriday: function() {
+				console.log("is black friday");
+				return false;
+			},
+			
+		},
+		methods: {
+			radioChange: function(evt){
+				var data = {};
+				if(evt.target.value == 1){
+					 data.couponId = 3;					
+					bus.$emit('produtoComDesconto', data);
+					vm.visible = true;		
+				}else{
+					bus.$emit('produtoComDesconto', data);
+					vm.visible = false;				
+					
+				}				
+			},
+			salvarProduto: function() {
+				var data = {
+					products: this.produto,
+					checkouts: this.checkout
+				}
+				bus.$emit('salvarProduto', data);
+			}
+		},
+	});
+
+	var data = {
+		visible: false,
+		stats: null,
+		products: [],
+		checkouts: []
+	};
+	
+	var vm = new Vue({
+		el: '.container',
+		data: data,
+		mounted: function() {
+			this.$nextTick(function() {
+
+				$.ajax({
+						url: '/api/checkouts/3', 
+						type: 'GET',
+						data: 'couponId=30',
+			            beforeSend: function() {
+			               console.log("buscando produto..");
+			            },
+			            success: function(data, textStatus){ 
+			            	console.log(data)
+			            	vm.products = data.product
+			            	vm.checkouts = data.checkout
+			            	vm.stats = true
+			        	       
+			            },
+			            error: function(jqXHR, textStatus, errorThrown){
+			               console.log("erro ao buscar produto..", textStatus);   
+			                                   
+			            }
+				})
+			})
+			
+		},
+		methods: {
+			getProducts: function(data) {
+				console.log('getProducts');
+				this.$nextTick(function() {
+
+					$.ajax({
+						url: '/api/checkouts/3', 
+						type: 'GET',
+						data: data,
+			            beforeSend: function() {
+			               console.log("buscando produto..");
+			            },
+			            success: function(data, textStatus){ 
+			            	console.log(data)
+			            	vm.products = data.product
+			            	vm.checkouts = data.checkout
+			            	vm.stats = true
+			        	       
+			            },
+			            error: function(jqXHR, textStatus, errorThrown){
+			               console.log("erro ao buscar produto..", textStatus);   
+			                                   
+			            }
+					})
+				})
+
+			},
+			salvarProduto: function(produto) {
+				console.log('salvarProduto');
+				$.ajax({
+					url: '/api/checkouts/3', 
+					type: 'POST',
+					data: produto,
+		            beforeSend: function() {
+		               console.log("salvando produto..");
+		               console.log(produto);
+		            },
+		            success: function(data, textStatus){ 
+		            	console.log(data)
+		            	$('#modalSuccess').modal('toggle');		            	
+		        	       
+		            },
+		            error: function(jqXHR, textStatus, errorThrown){
+		               console.log("erro ao salvar produto..", textStatus);   
+		               $('#modalError').modal('toggle');
+		                                   
+		            }
+				})
+			}
+		},
+		created() {
+			bus.$on('produtoComDesconto', this.getProducts);
+			bus.$on('salvarProduto', this.salvarProduto);
+		}
+
+
+
+	});
+
+</script>
+
 </body>
 </html>
